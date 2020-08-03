@@ -18,13 +18,13 @@ export function mountSpecial<T>(
   groups.forEach(([g, name, w]) => {
     if (g) {
       result[name] = function <T>(this: AnyIterable<T>, ...args: any[]) {
-        return w(g.call(this, ...args)).map(fluentGroup);
+        return w(g.call(this, ...args), this).map(fluentGroup);
       };
     }
   });
 
   result.partition = function <T>(this: AnyIterable<T>, ...args: any[]) {
-    return wrapper(partition!.call(this, ...args)).map((part: any) => {
+    return wrapper(partition!.call(this, ...args), this).map((part: any) => {
       return wrapper(part);
     });
   };

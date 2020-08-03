@@ -8,7 +8,7 @@ const getDefinition = <Func extends Function>(
   wrapper: (...args: any[]) => any,
 ) => {
   return function <T>(this: AnyIterable<T>, ...args: any[]) {
-    return wrapper(iterableFunc.call(this, ...args));
+    return wrapper(iterableFunc.call(this, ...args), this);
   };
 };
 

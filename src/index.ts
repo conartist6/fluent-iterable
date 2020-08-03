@@ -16,7 +16,7 @@ import {
   FluentGroup,
 } from './types';
 
-import fluent from './fluent';
+import fluent, { mFluent } from './fluent';
 import fluentAsync from './fluent-async';
 import depaginate from './depaginator';
 import { interval } from './interval';
@@ -46,5 +46,6 @@ export {
   depaginate,
   interval,
   mergeIterators,
+  mFluent,
 };
 export * from './utils';

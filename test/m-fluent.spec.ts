@@ -1,0 +1,936 @@
+import { mFluent, interval } from '../src';
+import expect, { flatMap, pick } from './tools';
+import delay from 'delay';
+import { stub } from 'sinon';
+import 'chai-callslike';
+
+export enum Gender {
+  Male = 'Male',
+  Female = 'Female',
+  NonBinary = 'NonBinary',
+}
+
+export interface Person {
+  name: string;
+  gender?: Gender;
+  emails: string[];
+}
+
+export const data: Person[] = [
+  {
+    name: '0: w/o gender & 0 emails',
+    emails: [],
+  },
+  {
+    name: '1: w/o gender & 1 emails',
+    emails: ['1@email.com'],
+  },
+  {
+    name: '2: w/o gender & 2 emails',
+    emails: ['2/1@email.com', '2/2@email.com'],
+  },
+  {
+    name: '3: male & 0 emails',
+    gender: Gender.Male,
+    emails: [],
+  },
+  {
+    name: '4: female & 0 emails',
+    gender: Gender.Female,
+    emails: [],
+  },
+  {
+    name: '5: non-binary & 0 emails',
+    gender: Gender.NonBinary,
+    emails: [],
+  },
+  {
+    name: '6: male & 1 emails',
+    gender: Gender.Male,
+    emails: ['6@email.com'],
+  },
+  {
+    name: '7: female & 1 emails',
+    gender: Gender.Female,
+    emails: ['7@email.com'],
+  },
+  {
+    name: '8: non-binary & 1 emails',
+    gender: Gender.NonBinary,
+    emails: ['8@email.com'],
+  },
+  {
+    name: '9: male & 2 emails',
+    gender: Gender.Male,
+    emails: ['9/1@email.com', '9/2@email.com'],
+  },
+  {
+    name: '10: female & 2 emails',
+    gender: Gender.Female,
+    emails: ['10/1@email.com', '10/2@email.com'],
+  },
+  {
+    name: '11: non-binary & 2 emails',
+    gender: Gender.NonBinary,
+    emails: ['11/1@email.com', '11/2@email.com'],
+  },
+];
+
+export const picker = (...indexes: number[]): Person[] =>
+  pick(data, ...indexes);
+
+function* generator(): Iterable<Person> {
+  yield* data;
+}
+
+const additionalPerson: Person = {
+  name: 'name',
+  gender: Gender.NonBinary,
+  emails: ['name@email.com'],
+};
+
+describe('mFluent iterable', () => {
+  const suite = (createSubject: () => Iterable<Person>) => () => {
+    let subject: Iterable<Person>;
+
+    beforeEach(() => (subject = createSubject()));
+
+    describe('synchronous', () => {
+      context('basics work', () => {
+        it('wrapping does not fail', () => {
+          mFluent(subject);
+        });
+        it('can iterate through', () => {
+          let idx = 0;
+          for (const person of mFluent(subject)) {
+            expect(person).to.equal(data[idx++]);
+          }
+        });
+        it('can convert to array', () => {
+          expect(mFluent(subject).toArray()).to.eql(data);
+        });
+      });
+      context('withIndex', () => {
+        it('should return Indexed instances from informed array', () => {
+          expect(mFluent(['a', 'b', 'c']).withIndex().toArray()).to.be.eql([
+            { idx: 0, value: 'a' },
+            { idx: 1, value: 'b' },
+            { idx: 2, value: 'c' },
+          ]);
+        });
+      });
+      context('takeWhile', () => {
+        it('works with initially not true statement', () =>
+          expect(
+            mFluent(subject)
+              .takeWhile((p) => p.emails.length > 0)
+              .toArray(),
+          ).to.be.empty);
+        it('works with eventually not true statement', () => {
+          expect(
+            mFluent(subject)
+              .takeWhile((p) => p.gender === undefined)
+              .toArray(),
+          ).to.eql(data.slice(0, 3));
+        });
+        it('works with always true statement', () => {
+          expect(
+            mFluent(subject)
+              .takeWhile((p) => p.name.length > 0)
+              .toArray(),
+          ).to.eql(data);
+        });
+      });
+      context('takeWhileAsync', () => {
+        it('works with initially not true statement', async () =>
+          expect(
+            await mFluent(subject)
+              .takeWhileAsync(async (p) => p.emails.length > 0)
+              .toArray(),
+          ).to.be.empty);
+        it('works with eventually not true statement', async () => {
+          expect(
+            await mFluent(subject)
+              .takeWhileAsync(async (p) => p.gender === undefined)
+              .toArray(),
+          ).to.eql(data.slice(0, 3));
+        });
+        it('works with always true statement', async () => {
+          expect(
+            await mFluent(subject)
+              .takeWhileAsync(async (p) => p.name.length > 0)
+              .toArray(),
+          ).to.eql(data);
+        });
+      });
+      context('take', () => {
+        it('works with negative count', () =>
+          expect(mFluent(subject).take(-5).toArray()).to.be.empty);
+        it('works with zero count', () =>
+          expect(mFluent(subject).take(0).toArray()).to.be.empty);
+        it('works with one count', () =>
+          expect(mFluent(subject).take(1).toArray()).to.eql(data.slice(0, 1)));
+        it('works with count < length', () =>
+          expect(mFluent(subject).take(5).toArray()).to.eql(data.slice(0, 5)));
+        it('works with count = length', () =>
+          expect(mFluent(subject).take(data.length).toArray()).to.eql(data));
+        it('works with count > length', () =>
+          expect(
+            mFluent(subject)
+              .take(data.length * 2)
+              .toArray(),
+          ).to.eql(data));
+      });
+      context('skipWhile', () => {
+        it('works with initially not true statement', () =>
+          expect(
+            mFluent(subject)
+              .skipWhile((p) => p.emails.length > 0)
+              .toArray(),
+          ).to.eql(data));
+        it('works with eventually not true statement', () =>
+          expect(
+            mFluent(subject)
+              .skipWhile((p) => p.gender === undefined)
+              .toArray(),
+          ).to.eql(data.slice(3)));
+        it('works with always true statement', () =>
+          expect(
+            mFluent(subject)
+              .skipWhile((p) => p.name.length > 0)
+              .toArray(),
+          ).to.be.empty);
+        it('works with alternating true statement', () =>
+          expect(
+            mFluent(subject)
+              .skipWhile((p) => p.emails.length === 0)
+              .toArray(),
+          ).to.eql(data.slice(1)));
+      });
+      context('skipWhileAsync', () => {
+        it('works with initially not true statement', async () =>
+          expect(
+            await mFluent(subject)
+              .skipWhileAsync(async (p) => p.emails.length > 0)
+              .toArray(),
+          ).to.eql(data));
+        it('works with eventually not true statement', async () =>
+          expect(
+            await mFluent(subject)
+              .skipWhileAsync(async (p) => p.gender === undefined)
+              .toArray(),
+          ).to.eql(data.slice(3)));
+        it('works with always true statement', async () =>
+          expect(
+            await mFluent(subject)
+              .skipWhileAsync(async (p) => p.name.length > 0)
+              .toArray(),
+          ).to.be.empty);
+        it('works with alternating true statement', async () =>
+          expect(
+            await mFluent(subject)
+              .skipWhileAsync(async (p) => p.emails.length === 0)
+              .toArray(),
+          ).to.eql(data.slice(1)));
+      });
+      context('skip', () => {
+        it('works with negative count', () =>
+          expect(mFluent(subject).skip(-5).toArray()).to.eql(data));
+        it('works with zero count', () =>
+          expect(mFluent(subject).skip(0).toArray()).to.eql(data));
+        it('works with one count', () =>
+          expect(mFluent(subject).skip(1).toArray()).to.eql(data.slice(1)));
+        it('works with count < length', () =>
+          expect(mFluent(subject).skip(5).toArray()).to.eql(data.slice(5)));
+        it('works with count = length', () =>
+          expect(mFluent(subject).skip(data.length).toArray()).to.be.empty);
+        it('works with count > length', () =>
+          expect(
+            mFluent(subject)
+              .skip(data.length * 2)
+              .toArray(),
+          ).to.be.empty);
+      });
+      describe('map', () => {
+        it('maps to undefined', () => {
+          const res = mFluent(subject)
+            .map(() => undefined)
+            .toArray();
+          expect(res).to.length(data.length);
+          res.forEach((item) => expect(item).to.be.undefined);
+        });
+        it('maps to projection', () => {
+          const res = mFluent(subject)
+            .map((p) => p.name)
+            .toArray();
+          expect(res).to.length(data.length);
+          let idx = 0;
+          for (const item of res) {
+            expect(item).to.equal(data[idx++].name);
+          }
+        });
+      });
+      describe('mapAsync', () => {
+        it('maps to undefined', async () => {
+          const res = await mFluent(subject)
+            .mapAsync(async () => undefined)
+            .toArray();
+          expect(res).to.length(data.length);
+          res.forEach((item) => expect(item).to.be.undefined);
+        });
+        it('maps to projection', async () => {
+          const res = await mFluent(subject)
+            .mapAsync(async (p) => p.name)
+            .toArray();
+          expect(res).to.length(data.length);
+          let idx = 0;
+          for (const item of res) {
+            expect(item).to.equal(data[idx++].name);
+          }
+        });
+      });
+      describe('filter', () => {
+        it('with always false predicate', () =>
+          expect(
+            mFluent(subject)
+              .filter(() => false)
+              .toArray(),
+          ).to.be.empty);
+        it('with always true predicate', () =>
+          expect(
+            mFluent(subject)
+              .filter(() => true)
+              .toArray(),
+          ).to.eql(data));
+        it('with alternating predicate', () =>
+          expect(
+            mFluent(subject)
+              .filter((p) => p.gender === Gender.Female)
+              .toArray(),
+          ).to.eql(picker(4, 7, 10)));
+      });
+      describe('filterAsync', () => {
+        it('with always false predicate', async () =>
+          expect(
+            await mFluent(subject)
+              .filterAsync(async () => false)
+              .toArray(),
+          ).to.be.empty);
+        it('with always true predicate', async () =>
+          expect(
+            await mFluent(subject)
+              .filterAsync(async () => true)
+              .toArray(),
+          ).to.eql(data));
+        it('with alternating predicate', async () =>
+          expect(
+            await mFluent(subject)
+              .filterAsync(async (p) => p.gender === Gender.Female)
+              .toArray(),
+          ).to.eql(picker(4, 7, 10)));
+      });
+      describe('partition', () => {
+        it('should divide result in blocks of the specified size', () => {
+          expect(
+            mFluent([1, 2, 3, 4, 5, 6, 7, 8])
+              .partition(3)
+              .map((x) => x.toArray())
+              .toArray(),
+          ).to.be.eql([
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8],
+          ]);
+        });
+        it('should divide result in blocks of the specified size when input it not an array', () => {
+          expect(
+            mFluent([1, 2, 3, 4, 5, 6, 7, 8][Symbol.iterator]())
+              .partition(3)
+              .map((x) => x.toArray())
+              .toArray(),
+          ).to.be.eql([
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8],
+          ]);
+        });
+        it('should thrown an error when partition size is not valid', () => {
+          let error: any;
+          try {
+            mFluent([]).partition(0);
+          } catch (err) {
+            error = err;
+          }
+          expect(error).to.be.instanceOf(Error);
+        });
+      });
+      describe('append', () => {
+        it('with empty iterable', () =>
+          expect(
+            mFluent([] as Person[])
+              .append(additionalPerson)
+              .toArray(),
+          ).to.eql([additionalPerson]));
+        it('with non-empty iterable', () =>
+          expect(mFluent(subject).append(additionalPerson).toArray()).to.eql([
+            ...data,
+            additionalPerson,
+          ]));
+      });
+      describe('prepend', () => {
+        it('with empty iterable', () =>
+          expect(
+            mFluent([] as Person[])
+              .prepend(additionalPerson)
+              .toArray(),
+          ).to.eql([additionalPerson]));
+        it('with non-empty iterable', () =>
+          expect(mFluent(subject).prepend(additionalPerson).toArray()).to.eql([
+            additionalPerson,
+            ...data,
+          ]));
+      });
+      describe('concat', () => {
+        it('one empty array', () =>
+          expect(mFluent(subject).concat([]).toArray()).to.eql(data));
+        it('two empty arrays', () =>
+          expect(mFluent(subject).concat([], []).toArray()).to.eql(data));
+        it('one non-empty arrays', () =>
+          expect(mFluent(subject).concat([additionalPerson]).toArray()).to.eql([
+            ...data,
+            additionalPerson,
+          ]));
+        it('two non-empty arrays', () =>
+          expect(
+            mFluent(subject).concat([additionalPerson], data).toArray(),
+          ).to.eql([...data, additionalPerson, ...data]));
+        it('one empty and one non-empty arrays', () =>
+          expect(
+            mFluent(subject).concat([], [additionalPerson]).toArray(),
+          ).to.eql([...data, additionalPerson]));
+      });
+      describe('repeat', () => {
+        it('negative number of times', () =>
+          expect(mFluent(subject).repeat(-5).toArray()).to.be.empty);
+        it('zero times', () =>
+          expect(mFluent(subject).repeat(0).toArray()).to.be.empty);
+        it('once', () =>
+          expect(mFluent(subject).repeat(1).toArray()).to.eql(data));
+        it('twice', () =>
+          expect(mFluent(subject).repeat(2).toArray()).to.eql([
+            ...data,
+            ...data,
+          ]));
+        it('three times', () =>
+          expect(mFluent(subject).repeat(3).toArray()).to.eql([
+            ...data,
+            ...data,
+            ...data,
+          ]));
+      });
+      describe('flatten', () => {
+        it('empty array', () =>
+          expect(mFluent([]).flatten().toArray()).to.be.empty);
+        it('already flat fails', () =>
+          expect(() => mFluent(subject).flatten().toArray()).to.throw());
+        it('not flat', () =>
+          expect(
+            mFluent([[1, 2], [3, 4, 5], [], [6]])
+              .flatten()
+              .toArray(),
+          ).to.eql([1, 2, 3, 4, 5, 6]));
+        it('with mapper', () =>
+          expect(
+            mFluent(subject)
+              .flatten((p) => p.emails)
+              .toArray(),
+          ).to.eql(flatMap(picker(1, 2, 6, 7, 8, 9, 10, 11), (p) => p.emails)));
+      });
+      describe('flattenAsync', () => {
+        it('empty array', async () =>
+          expect(
+            await mFluent([])
+              .flattenAsync((x) => x)
+              .toArray(),
+          ).to.be.empty);
+        it('not flat', async () =>
+          expect(
+            await mFluent([[1, 2], [3, 4, 5], [], [6]])
+              .flattenAsync(async (x) => x)
+              .toArray(),
+          ).to.eql([1, 2, 3, 4, 5, 6]));
+      });
+      describe('sort', () => {
+        it('empty', () => expect(mFluent([]).sort().toArray()).to.be.empty);
+        it('flat numbers', () =>
+          expect(mFluent([6, 4, 5, 3, 2, 1]).sort().toArray()).to.eql([
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+          ]));
+        it('flat numbers with reversed comparison', () =>
+          expect(
+            mFluent([6, 4, 5, 3, 2, 1])
+              .sort((a, b) => b - a)
+              .toArray(),
+          ).to.eql([6, 5, 4, 3, 2, 1]));
+      });
+      describe('distinct', () => {
+        it('empty', () => expect(mFluent([]).distinct().toArray()).to.be.empty);
+        it('not distinct numbers', () =>
+          expect(mFluent([1, 1, 1, 2, 2, 3]).distinct().toArray()).to.eql([
+            1,
+            2,
+            3,
+          ]));
+        it('already distinct collection', () =>
+          expect(mFluent(subject).distinct().toArray()).to.eql(data));
+        it('with mapper', () =>
+          expect(
+            mFluent(subject)
+              .distinct((p) => p.gender)
+              .toArray(),
+          ).to.eql(picker(0, 3, 4, 5)));
+      });
+      describe('distinctAsync', () => {
+        it('empty', async () =>
+          expect(
+            await mFluent([])
+              .distinctAsync(async (x) => x)
+              .toArray(),
+          ).to.be.empty);
+        it('not distinct numbers', async () =>
+          expect(
+            await mFluent([1, 1, 1, 2, 2, 3])
+              .distinctAsync(async (x) => x)
+              .toArray(),
+          ).to.eql([1, 2, 3]));
+        it('already distinct collection', async () =>
+          expect(
+            await mFluent(subject)
+              .distinctAsync(async (x) => x)
+              .toArray(),
+          ).to.eql(data));
+      });
+      describe('group', () => {
+        it('empty', () =>
+          expect(
+            mFluent([] as Person[])
+              .group((p) => p.gender)
+              .toArray(),
+          ).to.be.empty);
+        it.only('non-empty', () => {
+          const groups = mFluent(subject)
+            .group((p) => p.gender)
+            .toArray();
+          expect(groups.length).to.eql(4);
+          expect(groups.map((grp) => grp.key)).to.have.members([
+            undefined,
+            Gender.Male,
+            Gender.Female,
+            Gender.NonBinary,
+          ]);
+          for (const grp of groups) {
+            expect(grp.values.toArray()).to.eql(
+              data.filter((p) => p.gender === grp.key),
+            );
+          }
+        });
+      });
+      describe('groupAsync', () => {
+        it('empty', async () =>
+          expect(
+            await mFluent([] as Person[])
+              .groupAsync(async (p) => p.gender)
+              .toArray(),
+          ).to.be.empty);
+        it('non-empty', async () => {
+          const groups = await mFluent(subject)
+            .groupAsync(async (p) => p.gender)
+            .toArray();
+          expect(groups.length).to.eql(4);
+          expect(groups.map((grp) => grp.key)).to.have.members([
+            undefined,
+            Gender.Male,
+            Gender.Female,
+            Gender.NonBinary,
+          ]);
+          for (const grp of groups) {
+            expect(grp.values.toArray()).to.eql(
+              data.filter((p) => p.gender === grp.key),
+            );
+          }
+        });
+      });
+      describe('avg', () => {
+        it('empty', () => expect(mFluent([]).avg()).to.eql(NaN));
+        it('one element', () => expect(mFluent([2]).avg()).to.equal(2));
+        it('multiple elements', () =>
+          expect(mFluent([2, 3, 4, 5]).avg()).to.equal(3.5));
+        it('multiple elements with predicate', () =>
+          expect(mFluent(subject).avg((x) => x.emails.length)).to.equal(1));
+      });
+      describe('min', () => {
+        it('empty', () => expect(mFluent([]).min()).to.eql(undefined));
+        it('one element', () => expect(mFluent([2]).min()).to.equal(2));
+        it('multiple elements', () =>
+          expect(mFluent([1, 3, 4, 5]).min()).to.equal(1));
+        it('multiple elements with predicate', () =>
+          expect(mFluent(subject).min((x) => x.emails.length)).to.eql({
+            emails: [],
+            name: '0: w/o gender & 0 emails',
+          }));
+      });
+      describe('count', () => {
+        it('empty', () => expect(mFluent([]).count()).to.equal(0));
+        it('one element', () => expect(mFluent([0]).count()).to.equal(1));
+        it('multiple elements', () =>
+          expect(mFluent(subject).count()).to.equal(data.length));
+        it('multiple elements with predicate', () =>
+          expect(mFluent(subject).count((x) => x.emails.length > 0)).to.equal(
+            8,
+          ));
+      });
+      describe('countAsync', () => {
+        it('empty', async () =>
+          expect(await mFluent([]).countAsync(async () => true)).to.equal(0));
+        it('one element', async () =>
+          expect(await mFluent([0]).countAsync(async (x) => x === 0)).to.equal(
+            1,
+          ));
+        it('multiple elements', async () =>
+          expect(
+            await mFluent(subject).countAsync(async (x) => x.emails.length > 0),
+          ).to.equal(8));
+      });
+      describe('join', () => {
+        it('empty', () => expect(mFluent([]).join('-')).to.be.eq(''));
+        it('one', () => expect(mFluent(['1']).join('-')).to.be.equal('1'));
+        it('two', () =>
+          expect(mFluent(['1', '2']).join('-')).to.be.equal('1-2'));
+        it('many with predicate', () =>
+          expect(
+            mFluent(['1', '2', '3']).join('-', (x) => `a${x}`),
+          ).to.be.equal('a1-a2-a3'));
+      });
+      describe('first', () => {
+        it('empty', () => expect(mFluent([]).first()).to.be.undefined);
+        it('not empty', () => expect(mFluent([3, 1]).first()).to.be.equal(3));
+        it('with predicate', () =>
+          expect(mFluent([3, 1, 2, 6]).first((x) => x % 2 === 0)).to.be.equal(
+            2,
+          ));
+      });
+      describe('firstAsync', () => {
+        it('empty', async () =>
+          expect(await mFluent([]).firstAsync(async (x) => x)).to.be.undefined);
+        it('not empty', async () =>
+          expect(
+            await mFluent([3, 1, 2, 6]).firstAsync(async (x) => x % 2 === 0),
+          ).to.be.equal(2));
+      });
+      describe('last', () => {
+        it('empty', () => expect(mFluent([]).last()).to.be.undefined);
+        it('not empty', () => expect(mFluent([3, 1]).last()).to.be.equal(1));
+        it('with predicate', () =>
+          expect(mFluent([3, 1, 2, 6]).last((x) => x % 2 === 0)).to.be.equal(
+            6,
+          ));
+      });
+
+      describe('lastAsync', () => {
+        it('empty', async () =>
+          expect(await mFluent([]).lastAsync(async (x) => x)).to.be.undefined);
+        it('not empty', async () =>
+          expect(
+            await mFluent([3, 1, 2, 6, 7]).lastAsync(async (x) => x % 2 === 0),
+          ).to.be.equal(6));
+      });
+      describe('reduceAndMap', () => {
+        it('empty', async () =>
+          expect(
+            mFluent([]).reduceAndMap(
+              (a, b) => (a += b),
+              0,
+              (a) => a * 10 + 1,
+            ),
+          ).to.be.equal(1));
+        it('not empty', async () =>
+          expect(
+            mFluent([1, 2, 3]).reduceAndMap(
+              (a, b) => (a += b),
+              0,
+              (a) => a * 10 + 1,
+            ),
+          ).to.be.equals(61));
+      });
+      describe('reduceAndMapAsync', () => {
+        it('empty', async () =>
+          expect(
+            await mFluent([]).reduceAndMapAsync(
+              async (a, b) => (a += b),
+              0,
+              async (a) => a * 10 + 1,
+            ),
+          ).to.be.equal(1));
+        it('not empty', async () =>
+          expect(
+            await mFluent([1, 2, 3]).reduceAndMapAsync(
+              async (a, b) => (a += b),
+              0,
+              async (a) => a * 10 + 1,
+            ),
+          ).to.be.equals(61));
+      });
+      describe('reduce', () => {
+        it('empty', async () =>
+          expect(mFluent([]).reduce((a, b) => (a += b), 0)).to.be.equal(0));
+        it('not empty', async () =>
+          expect(mFluent([1, 2, 3]).reduce((a, b) => (a += b), 0)).to.be.equals(
+            6,
+          ));
+      });
+      describe('reduceAsync', () => {
+        it('empty', async () =>
+          expect(
+            await mFluent([]).reduceAsync(async (a, b) => (a += b), 0),
+          ).to.be.equal(0));
+        it('not empty', async () =>
+          expect(
+            await mFluent([1, 2, 3]).reduceAsync(async (a, b) => (a += b), 0),
+          ).to.be.equals(6));
+      });
+      describe('all', () => {
+        it('empty', async () =>
+          expect(mFluent([]).all((a: number) => a % 2 === 0)).to.be.true);
+        it('false', async () =>
+          expect(mFluent([1, 2, 3]).all((a: number) => a % 2 === 0)).to.be
+            .false);
+        it('true', async () =>
+          expect(mFluent([2, 4, 6]).all((a: number) => a % 2 === 0)).to.be
+            .true);
+      });
+      describe('allAsync', () => {
+        it('empty', async () =>
+          expect(await mFluent([]).allAsync(async (a: number) => a % 2 === 0))
+            .to.be.true);
+        it('false', async () =>
+          expect(
+            await mFluent([1, 2, 3]).allAsync(async (a: number) => a % 2 === 0),
+          ).to.be.false);
+        it('true', async () =>
+          expect(
+            await mFluent([2, 4, 6]).allAsync(async (a: number) => a % 2 === 0),
+          ).to.be.true);
+      });
+      describe('any', () => {
+        it('empty', async () =>
+          expect(mFluent([]).any((a: number) => a % 2 === 0)).to.be.false);
+        it('false', async () =>
+          expect(mFluent([1, 3, 5]).any((a: number) => a % 2 === 0)).to.be
+            .false);
+        it('true', async () =>
+          expect(mFluent([1, 2, 3]).any((a: number) => a % 2 === 0)).to.be
+            .true);
+      });
+      describe('allAsync', () => {
+        it('empty', async () =>
+          expect(await mFluent([]).anyAsync(async (a: number) => a % 2 === 0))
+            .to.be.false);
+        it('false', async () =>
+          expect(
+            await mFluent([1, 3, 5]).anyAsync(async (a: number) => a % 2 === 0),
+          ).to.be.false);
+        it('true', async () =>
+          expect(
+            await mFluent([1, 2, 3]).anyAsync(async (a: number) => a % 2 === 0),
+          ).to.be.true);
+      });
+      describe('contains', () => {
+        it('empty', async () =>
+          expect(mFluent([] as number[]).contains(4)).to.be.false);
+        it('false', async () =>
+          expect(mFluent([1, 3, 5]).contains(4)).to.be.false);
+        it('true', async () =>
+          expect(mFluent([1, 2, 4]).contains(4)).to.be.true);
+      });
+      describe('toObject', () => {
+        it('empty', async () =>
+          expect(
+            await mFluent([] as Iterable<Person>).toObject(
+              (x) => x.gender as string,
+              (x) => x.name,
+            ),
+          ).to.be.deep.equal({}));
+        it('not empty', async () =>
+          expect(
+            await mFluent([
+              {
+                gender: Gender.Female,
+                name: 'name A',
+              },
+              {
+                gender: Gender.NonBinary,
+                name: 'name B',
+              },
+              {
+                gender: Gender.Male,
+                name: 'name C',
+              },
+            ]).toObject(
+              (x) => x.gender as string,
+              (x) => x.name,
+            ),
+          ).to.be.deep.equal({
+            [Gender.Female]: 'name A',
+            [Gender.NonBinary]: 'name B',
+            [Gender.Male]: 'name C',
+          }));
+        it('default mapper', async () =>
+          expect(
+            await mFluent([
+              {
+                gender: Gender.Female,
+                name: 'name A',
+              },
+              {
+                gender: Gender.NonBinary,
+                name: 'name B',
+              },
+              {
+                gender: Gender.Male,
+                name: 'name C',
+              },
+            ] as Iterable<Person>).toObject((x) => x.gender as string),
+          ).to.be.deep.equal({
+            [Gender.Female]: {
+              gender: Gender.Female,
+              name: 'name A',
+            },
+            [Gender.NonBinary]: {
+              gender: Gender.NonBinary,
+              name: 'name B',
+            },
+            [Gender.Male]: {
+              gender: Gender.Male,
+              name: 'name C',
+            },
+          }));
+      });
+      describe('toObjectAsync', () => {
+        it('empty', async () =>
+          expect(
+            await mFluent([] as Iterable<Person>).toObjectAsync(
+              async (x) => x.gender as string,
+              async (x) => x.name,
+            ),
+          ).to.be.deep.equal({}));
+        it('not empty', async () =>
+          expect(
+            await mFluent([
+              {
+                gender: Gender.Female,
+                name: 'name A',
+              },
+              {
+                gender: Gender.NonBinary,
+                name: 'name B',
+              },
+              {
+                gender: Gender.Male,
+                name: 'name C',
+              },
+            ]).toObjectAsync(
+              async (x) => x.gender as string,
+              async (x) => x.name,
+            ),
+          ).to.be.deep.equal({
+            [Gender.Female]: 'name A',
+            [Gender.NonBinary]: 'name B',
+            [Gender.Male]: 'name C',
+          }));
+      });
+      describe('max', () => {
+        it('should return the max number from a numeric array when no parameter is informed', () => {
+          expect(mFluent([1, 2, 3]).max()).to.be.eq(3);
+        });
+        it('should return the max number from a transformation when a parameter is informed', () => {
+          expect(mFluent([1, 2, 3]).max((x) => 3 - x)).to.be.eq(1);
+        });
+      });
+      describe('hasExactly', () => {
+        it('false', () => expect(mFluent([1, 2, 3]).hasExactly(2)).to.false);
+        it('true', () => expect(mFluent([1, 2, 3]).hasExactly(3)).to.true);
+      });
+      describe('hasLessThan', () => {
+        it('false', () => expect(mFluent([1, 2, 3]).hasLessThan(3)).to.false);
+        it('true', () => expect(mFluent([1, 2, 3]).hasLessThan(4)).to.true);
+      });
+      describe('hasLessOrExactly', () => {
+        it('false', () =>
+          expect(mFluent([1, 2, 3]).hasLessOrExactly(2)).to.false);
+        it('true', () =>
+          expect(mFluent([1, 2, 3]).hasLessOrExactly(3)).to.true);
+        it('true for less', () =>
+          expect(mFluent([1, 2, 3]).hasLessOrExactly(4)).to.true);
+      });
+      describe('hasMoreThan', () => {
+        it('false', () => expect(mFluent([1, 2, 3]).hasMoreThan(3)).to.false);
+        it('true', () => expect(mFluent([1, 2, 3]).hasMoreThan(2)).to.true);
+      });
+      describe('hasMoreOrExactly', () => {
+        it('false', () =>
+          expect(mFluent([1, 2, 3]).hasMoreOrExactly(4)).to.false);
+        it('true', () =>
+          expect(mFluent([1, 2, 3]).hasMoreOrExactly(3)).to.true);
+        it('true for more', () =>
+          expect(mFluent([1, 2, 3]).hasMoreOrExactly(2)).to.true);
+      });
+      describe('execute', () => {
+        it('should run what is passed', () => {
+          const action = stub();
+
+          const result = mFluent([1, 2, 3]).execute(action).toArray();
+
+          expect(action).to.have.callsLike([1], [2], [3]);
+          expect(result).to.be.eql([1, 2, 3]);
+        });
+      });
+    });
+
+    describe('asynchronous', () => {
+      context('basics work', () => {
+        it('can convert to mFluent', async () =>
+          expect(await mFluent(subject).toAsync().toArray()).to.eql(data));
+      });
+    });
+  };
+  describe(
+    'on array',
+    suite(() => data),
+  );
+  describe('on generator', suite(generator));
+
+  describe('waitAll', () => {
+    it('should return a promises with resolves when all promises are resolved', async () => {
+      let resolved = 0;
+
+      const promise = mFluent(interval(1, 10)).waitAll(
+        (x) =>
+          new Promise(async (resolve) => {
+            await delay(1);
+            resolved++;
+            resolve(x);
+          }),
+      );
+
+      expect(resolved).to.be.eq(0);
+      const result = await promise;
+      expect(resolved).to.be.eq(10);
+      expect(result).to.be.eql([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    });
+  });
+});
