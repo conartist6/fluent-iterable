@@ -132,6 +132,17 @@ export interface Group<T, R> {
    */
   values: Iterable<T>;
 }
+/**
+ * Represents a group of items of type `T` with a key of type `R`.
+ * @typeparam T The type of the items in the [[Group]].
+ * @typeparam R The type of the key of the [[Group]].
+ */
+export interface PipeGroup<T, R> extends Group<T, R> {
+  /**
+   * The items in the [[PipeGroup]].
+   */
+  values: T[];
+}
 
 /**
  * Represents an indexed value of type `T`.
@@ -250,3 +261,5 @@ export interface FluentAsyncIterable<T>
     FluentIterableEmitter<T> {}
 
 export interface FluentOperator {}
+
+export interface FluentAsyncOperator {}

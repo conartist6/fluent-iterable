@@ -4,7 +4,7 @@ import {
   od,
   getGroupingDistinct,
   fluentPipe,
-  fluentOp,
+  fluentOpAsync,
 } from '../src';
 import expect, { flatMap } from './tools';
 import 'chai-callslike';
@@ -27,6 +27,15 @@ const additionalPerson: Person = {
   emails: ['name@email.com'],
 };
 
+async function fromAsync<T>(it: AsyncIterable<T>) {
+  const result: T[] = [];
+  for await (const item of it) {
+    result.push(item);
+  }
+
+  return result;
+}
+
 describe('fluent iterable', () => {
   const suite = (createSubject: () => Iterable<Person>) => () => {
     let subject: Iterable<Person>;
@@ -35,10 +44,9 @@ describe('fluent iterable', () => {
 
     describe('synchronous', () => {
       context('withIndex', () => {
-        it('should return Indexed instances from informed array', () => {
-          expect(
-            Array.from(fluentPipe(['a', 'b', 'c'], fluentOp.withIndex())),
-          ).to.be.eql([
+        it('should return Indexed instances from informed array', async () => {
+          const test = fluentPipe(['a', 'b', 'c'], fluentOpAsync.withIndex());
+          expect(await fromAsync(test)).to.be.eql([
             { idx: 0, value: 'a' },
             { idx: 1, value: 'b' },
             { idx: 2, value: 'c' },
@@ -46,110 +54,114 @@ describe('fluent iterable', () => {
         });
       });
       context('takeWhile', () => {
-        it('works with initially not true statement', () =>
+        it('works with initially not true statement', async () =>
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 subject,
-                fluentOp.takeWhile((p) => p.emails.length > 0),
+                fluentOpAsync.takeWhile((p) => p.emails.length > 0),
               ),
             ),
           ).to.be.empty);
-        it('works with eventually not true statement', () => {
+        it('works with eventually not true statement', async () => {
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 subject,
-                fluentOp.takeWhile((p) => p.gender === undefined),
+                fluentOpAsync.takeWhile((p) => p.gender === undefined),
               ),
             ),
           ).to.eql(data.slice(0, 3));
         });
-        it('works with always true statement', () => {
+        it('works with always true statement', async () => {
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 subject,
-                fluentOp.takeWhile((p) => p.name.length > 0),
+                fluentOpAsync.takeWhile((p) => p.name.length > 0),
               ),
             ),
           ).to.eql(data);
         });
-        it('should work with key string parameter', () => {
+        it('should work with key string parameter', async () => {
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 [{ a: 1 }, { a: 2 }, { a: 0 }, { a: 1 }],
-                fluentOp.takeWhile('a'),
+                fluentOpAsync.takeWhile('a'),
               ),
             ),
           ).to.eql([{ a: 1 }, { a: 2 }]);
         });
       });
       context('take', () => {
-        it('works with negative count', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.take(-5)))).to.be
-            .empty);
-        it('works with zero count', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.take(0)))).to.be
-            .empty);
-        it('works with one count', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.take(1)))).to.eql(
-            data.slice(0, 1),
-          ));
-        it('works with count < length', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.take(5)))).to.eql(
-            data.slice(0, 5),
-          ));
-        it('works with count = length', () =>
+        it('works with negative count', async () =>
+          expect(await fromAsync(fluentPipe(subject, fluentOpAsync.take(-5))))
+            .to.be.empty);
+        it('works with zero count', async () =>
+          expect(await fromAsync(fluentPipe(subject, fluentOpAsync.take(0)))).to
+            .be.empty);
+        it('works with one count', async () =>
           expect(
-            Array.from(fluentPipe(subject, fluentOp.take(data.length))),
+            await fromAsync(fluentPipe(subject, fluentOpAsync.take(1))),
+          ).to.eql(data.slice(0, 1)));
+        it('works with count < length', async () =>
+          expect(
+            await fromAsync(fluentPipe(subject, fluentOpAsync.take(5))),
+          ).to.eql(data.slice(0, 5)));
+        it('works with count = length', async () =>
+          expect(
+            await fromAsync(
+              fluentPipe(subject, fluentOpAsync.take(data.length)),
+            ),
           ).to.eql(data));
-        it('works with count > length', () =>
+        it('works with count > length', async () =>
           expect(
-            Array.from(fluentPipe(subject, fluentOp.take(data.length * 2))),
+            await fromAsync(
+              fluentPipe(subject, fluentOpAsync.take(data.length * 2)),
+            ),
           ).to.eql(data));
       });
       context('skipWhile', () => {
-        it('works with initially not true statement', () =>
+        it('works with initially not true statement', async () =>
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 subject,
-                fluentOp.skipWhile((p) => p.emails.length > 0),
+                fluentOpAsync.skipWhile((p) => p.emails.length > 0),
               ),
             ),
           ).to.eql(data));
-        it('works with eventually not true statement', () =>
+        it('works with eventually not true statement', async () =>
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 subject,
-                fluentOp.skipWhile((p) => p.gender === undefined),
+                fluentOpAsync.skipWhile((p) => p.gender === undefined),
               ),
             ),
           ).to.eql(data.slice(3)));
-        it('works with always true statement', () =>
+        it('works with always true statement', async () =>
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 subject,
-                fluentOp.skipWhile((p) => p.name.length > 0),
+                fluentOpAsync.skipWhile((p) => p.name.length > 0),
               ),
             ),
           ).to.be.empty);
-        it('works with alternating true statement', () =>
+        it('works with alternating true statement', async () =>
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 subject,
-                fluentOp.skipWhile((p) => p.emails.length === 0),
+                fluentOpAsync.skipWhile((p) => p.emails.length === 0),
               ),
             ),
           ).to.eql(data.slice(1)));
-        it('should work with key string parameter', () => {
+        it('should work with key string parameter', async () => {
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 [
                   { a: 1, b: 1 },
@@ -157,7 +169,7 @@ describe('fluent iterable', () => {
                   { a: 0, b: 3 },
                   { a: 1, b: 4 },
                 ],
-                fluentOp.skipWhile('a'),
+                fluentOpAsync.skipWhile('a'),
               ),
             ),
           ).to.eql([
@@ -167,46 +179,51 @@ describe('fluent iterable', () => {
         });
       });
       context('skip', () => {
-        it('works with negative count', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.skip(-5)))).to.eql(
-            data,
-          ));
-        it('works with zero count', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.skip(0)))).to.eql(
-            data,
-          ));
-        it('works with one count', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.skip(1)))).to.eql(
-            data.slice(1),
-          ));
-        it('works with count < length', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.skip(5)))).to.eql(
-            data.slice(5),
-          ));
-        it('works with count = length', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.skip(data.length)))).to
-            .be.empty);
-        it('works with count > length', () =>
+        it('works with negative count', async () =>
           expect(
-            Array.from(fluentPipe(subject, fluentOp.skip(data.length * 2))),
+            await fromAsync(fluentPipe(subject, fluentOpAsync.skip(-5))),
+          ).to.eql(data));
+        it('works with zero count', async () =>
+          expect(
+            await fromAsync(fluentPipe(subject, fluentOpAsync.skip(0))),
+          ).to.eql(data));
+        it('works with one count', async () =>
+          expect(
+            await fromAsync(fluentPipe(subject, fluentOpAsync.skip(1))),
+          ).to.eql(data.slice(1)));
+        it('works with count < length', async () =>
+          expect(
+            await fromAsync(fluentPipe(subject, fluentOpAsync.skip(5))),
+          ).to.eql(data.slice(5)));
+        it('works with count = length', async () =>
+          expect(
+            await fromAsync(
+              fluentPipe(subject, fluentOpAsync.skip(data.length)),
+            ),
+          ).to.be.empty);
+        it('works with count > length', async () =>
+          expect(
+            await fromAsync(
+              fluentPipe(subject, fluentOpAsync.skip(data.length * 2)),
+            ),
           ).to.be.empty);
       });
       describe('map', () => {
-        it('maps to undefined', () => {
-          const res = Array.from(
+        it('maps to undefined', async () => {
+          const res = await fromAsync(
             fluentPipe(
               subject,
-              fluentOp.map(() => undefined),
+              fluentOpAsync.map(() => undefined),
             ),
           );
           expect(res).to.length(data.length);
           res.forEach((item) => expect(item).to.be.undefined);
         });
-        it('maps to projection', () => {
-          const res = Array.from(
+        it('maps to projection', async () => {
+          const res = await fromAsync(
             fluentPipe(
               subject,
-              fluentOp.map((p) => p.name),
+              fluentOpAsync.map((p) => p.name),
             ),
           );
           expect(res).to.length(data.length);
@@ -215,11 +232,11 @@ describe('fluent iterable', () => {
             expect(item).to.equal(data[idx++].name);
           }
         });
-        it('should work with key string', () => {
-          const res = Array.from(
+        it('should work with key string', async () => {
+          const res = await fromAsync(
             fluentPipe(
               subject,
-              fluentOp.map((p) => p.name),
+              fluentOpAsync.map((p) => p.name),
             ),
           );
           expect(res).to.length(data.length);
@@ -228,9 +245,9 @@ describe('fluent iterable', () => {
             expect(item).to.equal(data[idx++].name);
           }
         });
-        it('should work with key string parameter', () => {
+        it('should work with key string parameter', async () => {
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 [
                   { a: 1, b: 1 },
@@ -238,47 +255,47 @@ describe('fluent iterable', () => {
                   { a: Promise.resolve(0), b: 3 },
                   { a: 1, b: 4 },
                 ],
-                fluentOp.map('b'),
+                fluentOpAsync.map('b'),
               ),
             ),
           ).to.eql([1, 2, 3, 4]);
         });
       });
       describe('filter', () => {
-        it('with always false predicate', () =>
+        it('with always false predicate', async () =>
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 subject,
-                fluentOp.filter(() => false),
+                fluentOpAsync.filter(() => false),
               ),
             ),
           ).to.be.empty);
-        it('with always true predicate', () =>
+        it('with always true predicate', async () =>
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 subject,
-                fluentOp.filter(() => true),
+                fluentOpAsync.filter(() => true),
               ),
             ),
           ).to.eql(data));
-        it('with alternating predicate', () =>
+        it('with alternating predicate', async () =>
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 subject,
-                fluentOp.filter((p) => p.gender === Gender.Female),
+                fluentOpAsync.filter((p) => p.gender === Gender.Female),
               ),
             ),
           ).to.eql(picker(4, 7, 10)));
-        it('not assuring order', () => {
+        it('not assuring order', async () => {
           const call = stub();
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 [1, 2, 3, 4, 3],
-                fluentOp.filter((p) => {
+                fluentOpAsync.filter((p) => {
                   call();
                   return 2 <= p && p <= 3;
                 }),
@@ -287,13 +304,13 @@ describe('fluent iterable', () => {
           ).to.eql([2, 3, 3]);
           expect(call).to.have.callCount(5);
         });
-        it('assuring order', () => {
+        it('assuring order', async () => {
           const call = stub();
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 [1, 2, 3, 4, 3],
-                fluentOp.filter(
+                fluentOpAsync.filter(
                   o((p) => {
                     call();
                     return 2 <= p && p <= 3;
@@ -304,13 +321,13 @@ describe('fluent iterable', () => {
           ).to.eql([2, 3]);
           expect(call).to.have.callCount(4);
         });
-        it('assuring order descending', () => {
+        it('assuring order descending', async () => {
           const call = stub();
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 [1, 2, 3, 4, 3],
-                fluentOp.filter(
+                fluentOpAsync.filter(
                   od((p) => {
                     call();
                     return 2 <= p && p <= 3;
@@ -321,9 +338,9 @@ describe('fluent iterable', () => {
           ).to.eql([2, 3]);
           expect(call).to.have.callCount(4);
         });
-        it('should work with key string parameter', () => {
+        it('should work with key string parameter', async () => {
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 [
                   { a: 0, b: 1 },
@@ -331,70 +348,78 @@ describe('fluent iterable', () => {
                   { a: 0, b: 3 },
                   { a: 1, b: 4 },
                 ],
-                fluentOp.filter('a'),
-                fluentOp.map('b'),
+                fluentOpAsync.filter('a'),
+                fluentOpAsync.map('b'),
               ),
             ),
           ).to.eql([2, 4]);
         });
-        it('should guarantees that a possible falsy unique key is defined', () => {
+        it('should guarantees that a possible falsy unique key is defined', async () => {
           interface Test {
             a?: number;
             b: string | null;
           }
           expect(
-            Array.from(
-              fluentPipe(
-                [{ b: null, a: 1 }, { b: 'a' }, { a: 2, b: 'b' }] as Test[],
-                fluentOp.filter('b'),
-                fluentOp.filter('a'),
-                fluentOp.map((x) => `${x.a.toFixed(2)} and ${x.b.length}`),
-              ),
+            (
+              await fromAsync(
+                fluentPipe(
+                  [{ b: null, a: 1 }, { b: 'a' }, { a: 2, b: 'b' }] as Test[],
+                  fluentOpAsync.filter('b'),
+                  fluentOpAsync.filter('a'),
+                  fluentOpAsync.map(
+                    (x) => `${x.a.toFixed(2)} and ${x.b.length}`,
+                  ),
+                ),
+              )
             )[0],
           ).to.be.eq('2.00 and 1');
         });
-        it('should guarantees that a possible falsy unique key is defined explicitly', () => {
+        it('should guarantees that a possible falsy unique key is defined explicitly', async () => {
           interface Test {
             a?: number;
             b: string | null;
           }
           expect(
-            Array.from(
-              fluentPipe(
-                [{ b: null, a: 1 }, { b: 'a' }, { a: 2, b: 'b' }] as Test[],
-                fluentOp.filter<'b' | 'a'>((x) => x.b && x.a),
-                fluentOp.map((x) => `${x.a.toFixed(2)} and ${x.b.length}`),
-              ),
+            (
+              await fromAsync(
+                fluentPipe(
+                  [{ b: null, a: 1 }, { b: 'a' }, { a: 2, b: 'b' }] as Test[],
+                  fluentOpAsync.filter<'b' | 'a'>((x) => x.b && x.a),
+                  fluentOpAsync.map(
+                    (x) => `${x.a.toFixed(2)} and ${x.b.length}`,
+                  ),
+                ),
+              )
             )[0],
           ).to.be.eq('2.00 and 1');
         });
-        it('should return just the truthy values with correct typing', () => {
+        it('should return just the truthy values with correct typing', async () => {
           interface Test {
             a: number;
             b: string;
           }
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 [{ b: 'abc', a: 1 }, undefined, { a: 2, b: 'b' }] as (
                   | Test
                   | undefined
                 )[],
-                fluentOp.filter(),
-                fluentOp.map((x) => `${x.a.toFixed(2)} and ${x.b.length}`),
+                fluentOpAsync.filter(),
+                fluentOpAsync.map((x) => `${x.a.toFixed(2)} and ${x.b.length}`),
               ),
             ),
           ).to.be.eql(['1.00 and 3', '2.00 and 1']);
         });
       });
       describe('partition', () => {
-        it('should divide result in blocks of the specified size', () => {
+        it('should divide result in blocks of the specified size', async () => {
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 [1, 2, 3, 4, 5, 6, 7, 8],
-                fluentOp.partition(3),
-                fluentOp.map((x) => Array.from(x)),
+                fluentOpAsync.partition(3),
+                fluentOpAsync.map((x) => fromAsync(x)),
               ),
             ),
           ).to.be.eql([
@@ -403,13 +428,13 @@ describe('fluent iterable', () => {
             [7, 8],
           ]);
         });
-        it('should divide result in blocks of the specified size when input it not an array', () => {
+        it('should divide result in blocks of the specified size when input it not an array', async () => {
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 [1, 2, 3, 4, 5, 6, 7, 8][Symbol.iterator](),
-                fluentOp.partition(3),
-                fluentOp.map((x) => Array.from(x)),
+                fluentOpAsync.partition(3),
+                fluentOpAsync.map((x) => fromAsync(x)),
               ),
             ),
           ).to.be.eql([
@@ -418,10 +443,10 @@ describe('fluent iterable', () => {
             [7, 8],
           ]);
         });
-        it('should thrown an error when partition size is not valid', () => {
+        it('should thrown an error when partition size is not valid', async () => {
           let error: any;
           try {
-            Array.from(fluentPipe([], fluentOp.partition(0)));
+            await fromAsync(fluentPipe([], fluentOpAsync.partition(0)));
           } catch (err) {
             error = err;
           }
@@ -429,171 +454,196 @@ describe('fluent iterable', () => {
         });
       });
       describe('append', () => {
-        it('with empty iterable', () =>
+        it('with empty iterable', async () =>
           expect(
-            Array.from(
-              fluentPipe([] as Person[], fluentOp.append(additionalPerson)),
+            await fromAsync(
+              fluentPipe(
+                [] as Person[],
+                fluentOpAsync.append(additionalPerson),
+              ),
             ),
           ).to.eql([additionalPerson]));
-        it('with non-empty iterable', () =>
+        it('with non-empty iterable', async () =>
           expect(
-            Array.from(fluentPipe(subject, fluentOp.append(additionalPerson))),
+            await fromAsync(
+              fluentPipe(subject, fluentOpAsync.append(additionalPerson)),
+            ),
           ).to.eql([...data, additionalPerson]));
       });
       describe('prepend', () => {
-        it('with empty iterable', () =>
+        it('with empty iterable', async () =>
           expect(
-            Array.from(
-              fluentPipe([] as Person[], fluentOp.prepend(additionalPerson)),
+            await fromAsync(
+              fluentPipe(
+                [] as Person[],
+                fluentOpAsync.prepend(additionalPerson),
+              ),
             ),
           ).to.eql([additionalPerson]));
-        it('with non-empty iterable', () =>
+        it('with non-empty iterable', async () =>
           expect(
-            Array.from(fluentPipe(subject, fluentOp.prepend(additionalPerson))),
+            await fromAsync(
+              fluentPipe(subject, fluentOpAsync.prepend(additionalPerson)),
+            ),
           ).to.eql([additionalPerson, ...data]));
       });
       describe('concat', () => {
-        it('one empty array', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.concat([])))).to.eql(
-            data,
-          ));
-        it('two empty arrays', () =>
+        it('one empty array', async () =>
           expect(
-            Array.from(fluentPipe(subject, fluentOp.concat([], []))),
+            await fromAsync(fluentPipe(subject, fluentOpAsync.concat([]))),
           ).to.eql(data));
-        it('one non-empty arrays', () =>
+        it('two empty arrays', async () =>
           expect(
-            Array.from(
-              fluentPipe(subject, fluentOp.concat([additionalPerson])),
+            await fromAsync(fluentPipe(subject, fluentOpAsync.concat([], []))),
+          ).to.eql(data));
+        it('one non-empty arrays', async () =>
+          expect(
+            await fromAsync(
+              fluentPipe(subject, fluentOpAsync.concat([additionalPerson])),
             ),
           ).to.eql([...data, additionalPerson]));
-        it('two non-empty arrays', () =>
+        it('two non-empty arrays', async () =>
           expect(
-            Array.from(
-              fluentPipe(subject, fluentOp.concat([additionalPerson], data)),
+            await fromAsync(
+              fluentPipe(
+                subject,
+                fluentOpAsync.concat([additionalPerson], data),
+              ),
             ),
           ).to.eql([...data, additionalPerson, ...data]));
-        it('one empty and one non-empty arrays', () =>
+        it('one empty and one non-empty arrays', async () =>
           expect(
-            Array.from(
-              fluentPipe(subject, fluentOp.concat([], [additionalPerson])),
+            await fromAsync(
+              fluentPipe(subject, fluentOpAsync.concat([], [additionalPerson])),
             ),
           ).to.eql([...data, additionalPerson]));
       });
       describe('repeat', () => {
-        it('negative number of times', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.repeat(-5)))).to.be
-            .empty);
-        it('zero times', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.repeat(0)))).to.be
-            .empty);
-        it('once', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.repeat(1)))).to.eql(
-            data,
-          ));
-        it('twice', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.repeat(2)))).to.eql([
-            ...data,
-            ...data,
-          ]));
-        it('three times', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.repeat(3)))).to.eql([
-            ...data,
-            ...data,
-            ...data,
-          ]));
+        it('negative number of times', async () =>
+          expect(await fromAsync(fluentPipe(subject, fluentOpAsync.repeat(-5))))
+            .to.be.empty);
+        it('zero times', async () =>
+          expect(await fromAsync(fluentPipe(subject, fluentOpAsync.repeat(0))))
+            .to.be.empty);
+        it('once', async () =>
+          expect(
+            await fromAsync(fluentPipe(subject, fluentOpAsync.repeat(1))),
+          ).to.eql(data));
+        it('twice', async () =>
+          expect(
+            await fromAsync(fluentPipe(subject, fluentOpAsync.repeat(2))),
+          ).to.eql([...data, ...data]));
+        it('three times', async () =>
+          expect(
+            await fromAsync(fluentPipe(subject, fluentOpAsync.repeat(3))),
+          ).to.eql([...data, ...data, ...data]));
       });
       const flattens: ['flatten', 'flatMap'] = ['flatten', 'flatMap'];
       flattens.forEach((func) => {
         describe(func, () => {
-          it('empty array', () =>
-            expect(Array.from(fluentPipe([], fluentOp[func]()))).to.be.empty);
-          it('already flat fails', () =>
-            expect(() =>
-              Array.from(fluentPipe(subject, fluentOp[func]())),
-            ).to.throw());
-          it('not flat', () =>
+          it('empty array', async () =>
+            expect(await fromAsync(fluentPipe([], fluentOpAsync[func]()))).to.be
+              .empty);
+          it('already flat fails', async () => {
+            let thrownError: any;
+            try {
+              await fromAsync(fluentPipe(subject, fluentOpAsync[func]()));
+            } catch (err) {
+              thrownError = err;
+            }
+            expect(thrownError).to.exist;
+          });
+          it('not flat', async () =>
             expect(
-              Array.from(
-                fluentPipe([[1, 2], [3, 4, 5], [], [6]], fluentOp[func]()),
+              await fromAsync(
+                fluentPipe([[1, 2], [3, 4, 5], [], [6]], fluentOpAsync[func]()),
               ),
             ).to.eql([1, 2, 3, 4, 5, 6]));
-          it('with mapper', () =>
+          it('with mapper', async () =>
             expect(
-              Array.from(
+              await fromAsync(
                 fluentPipe(
                   subject,
-                  fluentOp[func]((p) => p.emails),
+                  fluentOpAsync[func]((p) => p.emails),
                 ),
               ),
             ).to.eql(
               flatMap(picker(1, 2, 6, 7, 8, 9, 10, 11), (p) => p.emails),
             ));
-          it('should work with key string', () =>
+          it('should work with key string', async () =>
             expect(
-              Array.from(fluentPipe(subject, fluentOp[func]('emails'))),
+              await fromAsync(
+                fluentPipe(subject, fluentOpAsync[func]('emails')),
+              ),
             ).to.eql(
               flatMap(picker(1, 2, 6, 7, 8, 9, 10, 11), (p) => p.emails),
             ));
         });
       });
       describe('sort', () => {
-        it('empty', () =>
-          expect(Array.from(fluentPipe([], fluentOp.sort()))).to.be.empty);
-        it('flat numbers', () =>
+        it('empty', async () =>
+          expect(fromAsync(fluentPipe([], fluentOpAsync.sort()))).to.be.empty);
+        it('flat numbers', async () =>
           expect(
-            Array.from(fluentPipe([6, 4, 5, 3, 2, 1], fluentOp.sort())),
+            await fromAsync(
+              fluentPipe([6, 4, 5, 3, 2, 1], fluentOpAsync.sort()),
+            ),
           ).to.eql([1, 2, 3, 4, 5, 6]));
-        it('flat numbers with reversed comparison', () =>
+        it('flat numbers with reversed comparison', async () =>
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 [6, 4, 5, 3, 2, 1],
-                fluentOp.sort((a, b) => b - a),
+                fluentOpAsync.sort((a, b) => b - a),
               ),
             ),
           ).to.eql([6, 5, 4, 3, 2, 1]));
       });
       describe('distinct', () => {
-        it('empty', () =>
-          expect(Array.from(fluentPipe([], fluentOp.distinct()))).to.be.empty);
-        it('not distinct numbers', () =>
+        it('empty', async () =>
+          expect(await fromAsync(fluentPipe([], fluentOpAsync.distinct()))).to
+            .be.empty);
+        it('not distinct numbers', async () =>
           expect(
-            Array.from(fluentPipe([1, 1, 1, 2, 2, 3], fluentOp.distinct())),
+            await fromAsync(
+              fluentPipe([1, 1, 1, 2, 2, 3], fluentOpAsync.distinct()),
+            ),
           ).to.eql([1, 2, 3]));
-        it('already distinct collection', () =>
-          expect(Array.from(fluentPipe(subject, fluentOp.distinct()))).to.eql(
-            data,
-          ));
-        it('with mapper', () =>
+        it('already distinct collection', async () =>
           expect(
-            Array.from(
+            await fromAsync(fluentPipe(subject, fluentOpAsync.distinct())),
+          ).to.eql(data));
+        it('with mapper', async () =>
+          expect(
+            await fromAsync(
               fluentPipe(
                 subject,
-                fluentOp.distinct((p) => p.gender),
+                fluentOpAsync.distinct((p) => p.gender),
               ),
             ),
           ).to.eql(picker(0, 3, 4, 5)));
-        it('should work with key string', () =>
+        it('should work with key string', async () =>
           expect(
-            Array.from(fluentPipe(subject, fluentOp.distinct('gender'))),
+            await fromAsync(
+              fluentPipe(subject, fluentOpAsync.distinct('gender')),
+            ),
           ).to.eql(picker(0, 3, 4, 5)));
       });
       describe('group', () => {
-        it('empty', () =>
+        it('empty', async () =>
           expect(
-            Array.from(
+            await fromAsync(
               fluentPipe(
                 [] as Person[],
-                fluentOp.group((p) => p.gender),
+                fluentOpAsync.group((p) => p.gender),
               ),
             ),
           ).to.be.empty);
-        it('non-empty', () => {
-          const groups = Array.from(
+        it('non-empty', async () => {
+          const groups = await fromAsync(
             fluentPipe(
               subject,
-              fluentOp.group((p) => p.gender),
+              fluentOpAsync.group((p) => p.gender),
             ),
           );
           expect(groups.length).to.eql(4);
@@ -607,7 +657,7 @@ describe('fluent iterable', () => {
             expect(grp.values).to.eql(data.filter((p) => p.gender === grp.key));
           }
         });
-        it('not assuring order', () => {
+        it('not assuring order', async () => {
           const items = [
             { k: 1, v: 1 },
             { k: 1, v: 2 },
@@ -616,10 +666,10 @@ describe('fluent iterable', () => {
             { k: 1, v: 1 },
             { k: 1, v: 2 },
           ];
-          const groups = Array.from(
+          const groups = await fromAsync(
             fluentPipe(
               items,
-              fluentOp.group((x) => x.k),
+              fluentOpAsync.group((x) => x.k),
             ),
           );
           expect(groups.length).to.eql(2);
@@ -629,7 +679,7 @@ describe('fluent iterable', () => {
             expect(values).to.eql(items.filter((x) => x.k === key));
           });
         });
-        it('assuring order', () => {
+        it('assuring order', async () => {
           const items = [
             { k: 1, v: 1 },
             { k: 1, v: 2 },
@@ -638,8 +688,8 @@ describe('fluent iterable', () => {
             { k: 1, v: 1 },
             { k: 1, v: 2 },
           ];
-          const groups = Array.from(
-            fluentPipe(items, fluentOp.group(o((x) => x.k))),
+          const groups = await fromAsync(
+            fluentPipe(items, fluentOpAsync.group(o((x) => x.k))),
           );
           expect(groups.length).to.eql(3);
           expect(groups.map((grp) => grp.key)).to.have.members([1, 2, 1]);
@@ -650,7 +700,7 @@ describe('fluent iterable', () => {
             });
           });
         });
-        it('assuring order descending', () => {
+        it('assuring order descending', async () => {
           const items = [
             { k: 1, v: 1 },
             { k: 1, v: 2 },
@@ -659,8 +709,8 @@ describe('fluent iterable', () => {
             { k: 1, v: 1 },
             { k: 1, v: 2 },
           ];
-          const groups = Array.from(
-            fluentPipe(items, fluentOp.group(od((x) => x.k))),
+          const groups = await fromAsync(
+            fluentPipe(items, fluentOpAsync.group(od((x) => x.k))),
           );
           expect(groups.length).to.eql(3);
           expect(groups.map((grp) => grp.key)).to.have.members([1, 2, 1]);
@@ -671,7 +721,7 @@ describe('fluent iterable', () => {
             });
           });
         });
-        it('assuring order with value transformation', () => {
+        it('assuring order with value transformation', async () => {
           const items = [
             { k: 1, v: 1 },
             { k: 1, v: 1 },
@@ -692,10 +742,10 @@ describe('fluent iterable', () => {
             { k: 1, v: 1 },
             { k: 1, v: 2 },
           ];
-          const groups = Array.from(
+          const groups = await fromAsync(
             fluentPipe(
               items,
-              fluentOp.group(
+              fluentOpAsync.group(
                 o((x) => x.k),
                 getGroupingDistinct(
                   (x) => [x.v.toString()],
@@ -713,9 +763,9 @@ describe('fluent iterable', () => {
             });
           });
         });
-        it('should work with key string', () => {
-          const groups = Array.from(
-            fluentPipe(subject, fluentOp.group('gender')),
+        it('should work with key string', async () => {
+          const groups = await fromAsync(
+            fluentPipe(subject, fluentOpAsync.group('gender')),
           );
           expect(groups.length).to.eql(4);
           expect(groups.map((grp) => grp.key)).to.have.members([
@@ -728,11 +778,11 @@ describe('fluent iterable', () => {
             expect(grp.values).to.eql(data.filter((p) => p.gender === grp.key));
           }
         });
-        it('should work with transformation expression', () => {
-          const groups = Array.from(
+        it('should work with transformation expression', async () => {
+          const groups = await fromAsync(
             fluentPipe(
               [1, 2, 2, 3, 4, 4, 5, 5, 5],
-              fluentOp.group((x) => x % 2, getGroupingDistinct(identity)),
+              fluentOpAsync.group((x) => x % 2, getGroupingDistinct(identity)),
             ),
           );
           expect(groups.length).to.eql(2);
@@ -746,11 +796,11 @@ describe('fluent iterable', () => {
         });
       });
       describe('execute', () => {
-        it('should run what is passed', () => {
+        it('should run what is passed', async () => {
           const action = stub();
 
-          const result = Array.from(
-            fluentPipe([1, 2, 3], fluentOp.execute(action)),
+          const result = await fromAsync(
+            fluentPipe([1, 2, 3], fluentOpAsync.execute(action)),
           );
 
           expect(action).to.have.callsLike([1], [2], [3]);

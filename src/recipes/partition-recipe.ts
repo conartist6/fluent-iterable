@@ -114,7 +114,7 @@ function partitionIterateRecipe<T>(symbol: symbol, resolver: ResolverType) {
 export function partitionRecipe(symbol: symbol, resolver: ResolverType) {
   const partitioning = partitionIterateRecipe(symbol, resolver);
   return function <T>(
-    this: Iterable<T>,
+    this: AnyIterable<T>,
     criteria: number | Equality<unknown>,
   ): AnyIterable<AnyIterable<T>> {
     if (criteria < 1) {

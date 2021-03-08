@@ -21,7 +21,6 @@ import {
 import fluent from './fluent';
 import { fluentAsync, fluentEmit } from './fluent-async';
 import depaginate from './depaginator';
-import { interval } from './interval';
 import { mergeIterators, mergeIterables } from './async-base/merging';
 import { assureOrder as o, assureOrderDescending as od } from './utils';
 import { AsyncMapper, Mapper } from 'augmentative-iterable';
@@ -53,7 +52,6 @@ export {
   fluentEmit,
   FluentEmitter,
   depaginate,
-  interval,
   mergeIterables,
   mergeIterators,
 };
@@ -68,3 +66,5 @@ export * from './is-any-iterable';
 export * from './is-any-fluent-iterable';
 export * from './fluent-op';
 export * from './fluent-pipe';
+export * from './fluent-op-async';
+export * from './interval';

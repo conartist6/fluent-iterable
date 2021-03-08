@@ -17,7 +17,7 @@ export * from './flatten-function';
 export * from './for-each-function';
 export * from './group-function';
 export * from './has-exactly-fuction';
-export * from './has-less-or-exactly';
+export * from './has-less-or-exactly-function';
 export * from './has-less-than-function';
 export * from './has-more-or-exactly-function';
 export * from './has-more-than-function';

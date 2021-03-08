@@ -40,7 +40,7 @@
     "preaction:verify:update-modules": "npm run action:verify:update-modules:check",
     "action:verify:update-modules": "npm run action:verify:update-modules:reinstall && npm run action:verify:update-modules:clean",
     "action:verify:update-modules:clean": "del-cli .check",
-    "lint:format": "prettier --check '{src,test}/**/*.ts'",
+    "lint:format": "prettier --check '{src,test*}/**/*.ts'",
     "lint:format:fix": "prettier --write '{src,test}/**/*.ts'",
     "lint:style": "eslint '**/*.ts'",
     "lint:style:fix": "eslint '**/*.ts' --fix"

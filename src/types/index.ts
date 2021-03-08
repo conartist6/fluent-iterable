@@ -9,6 +9,7 @@ export * from './emitter';
 export * from './fluent-async-iterable';
 export * from './fluent-iterable';
 export * from './fluent-operator';
+export * from './fluent-async-operator';
 export * from './iterator-catch-result';
 export * from './truthy';
 

@@ -1,25 +1,40 @@
 import fluent from './fluent';
 import { FluentIterable } from './types';
 
-function internalInterval(
+export function rawInterval(
   fromInclusive: number | undefined,
   count: number | undefined,
 ): Iterable<number> {
-  const from = fromInclusive || 0;
-  let offset = 0;
-  return {
-    [Symbol.iterator]: () => ({
-      next() {
-        const done = count !== undefined && offset >= count;
-        const value = from + offset;
-        offset++;
-        return {
-          value,
-          done,
-        };
-      },
-    }),
-  };
+  let offset = fromInclusive || 0;
+  if (count === undefined) {
+    const done = false;
+    return {
+      [Symbol.iterator]: () => ({
+        next() {
+          const value = offset;
+          offset++;
+          return {
+            value,
+            done,
+          };
+        },
+      }),
+    };
+  } else {
+    return {
+      [Symbol.iterator]: () => ({
+        next() {
+          const done = offset >= count;
+          const value = offset;
+          offset++;
+          return {
+            value,
+            done,
+          };
+        },
+      }),
+    };
+  }
 }
 
 /**
@@ -42,5 +57,5 @@ export function interval(
   fromInclusive?: number,
   count?: number,
 ): FluentIterable<number> {
-  return fluent(internalInterval(fromInclusive, count));
+  return fluent(rawInterval(fromInclusive, count));
 }
