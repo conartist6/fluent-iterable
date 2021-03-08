@@ -248,3 +248,5 @@ export interface FluentAsyncIterable<T>
   extends AsyncIterable<T>,
     OrderAssurable<FluentAsyncIterable<T>>,
     FluentIterableEmitter<T> {}
+
+export interface FluentOperator {}
