@@ -5,14 +5,13 @@ export function rawInterval(
   fromInclusive: number | undefined,
   count: number | undefined,
 ): Iterable<number> {
-  let offset = fromInclusive || 0;
+  let value = fromInclusive || 0;
   if (count === undefined) {
     const done = false;
     return {
       [Symbol.iterator]: () => ({
         next() {
-          const value = offset;
-          offset++;
+          value++;
           return {
             value,
             done,
@@ -21,12 +20,12 @@ export function rawInterval(
       }),
     };
   } else {
+    const to = count + value;
     return {
       [Symbol.iterator]: () => ({
         next() {
-          const done = offset >= count;
-          const value = offset;
-          offset++;
+          const done = value >= to;
+          value++;
           return {
             value,
             done,
