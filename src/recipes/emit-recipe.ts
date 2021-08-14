@@ -1,6 +1,6 @@
 import { AnyIterable } from 'augmentative-iterable';
 import { EventEmitter } from 'events';
-import { FluentEmitter } from '../types/base';
+import { FluentEmitter } from '../../types/base';
 import { RequiredResolverIngredient } from './ingredients';
 
 export function emitRecipe(forEach: RequiredResolverIngredient) {

@@ -1,9 +1,9 @@
-import { KVGroupTransform } from '../types/base';
+import { KVGroupTransform } from '../../types/base';
 import { Mapper } from 'augmentative-iterable';
 import { prepare } from '../types-internal/prepare';
 import { AnyMapper, FunctionAnyMapper } from '../types-internal';
 import { constant, identity } from './utils';
-import { Choose } from '../types';
+import { Choose } from '../../types';
 
 const noDistinct = constant(1);
 

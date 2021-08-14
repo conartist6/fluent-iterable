@@ -1,5 +1,5 @@
 import fluent from './fluent';
-import { FluentIterable } from './types';
+import { FluentIterable } from '../types';
 
 function internalInterval(
   fromInclusive: number | undefined,

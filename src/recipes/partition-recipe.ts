@@ -1,5 +1,5 @@
 import { AnyIterable } from 'augmentative-iterable';
-import { Equality } from '../types/base';
+import { Equality } from '../../types/base';
 import { ResolverType } from '../types-internal';
 import { getPartitionComparer } from './get-partition-comparer';
 

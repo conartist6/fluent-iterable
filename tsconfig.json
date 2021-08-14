@@ -4,8 +4,8 @@
     "target": "es2018",
     "rootDir": "./src",
     "outDir": "./dist",
-    "declaration": true,
+    "declaration": false,
     "strictBindCallApply": true
   },
-  "include": ["./src"]
+  "include": ["./src", "./types", "index.d.ts"]
 }

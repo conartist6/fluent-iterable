@@ -6,7 +6,7 @@ import {
   FluentAsyncIterable,
   FluentGroup,
   OrderAssurable,
-} from './types';
+} from '../types';
 import {
   Predicate,
   Reducer,
@@ -16,7 +16,7 @@ import {
   AsyncAction,
   Group,
   FluentEmitter,
-} from './types/base';
+} from '../types/base';
 
 import fluent from './fluent';
 import { fluentAsync, fluentEmit } from './fluent-async';

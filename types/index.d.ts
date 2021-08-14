@@ -1,7 +1,5 @@
 export * from './assure-order-types';
 export * from './base';
-export * from './base';
-export * from './base';
 export * from './catch-callback';
 export * from './choose';
 export * from './emitter';
@@ -9,3 +7,5 @@ export * from './fluent-async-iterable';
 export * from './fluent-iterable';
 export * from './iterator-catch-result';
 export * from './truthy';
+export * from './functions';
+export * from './utils';

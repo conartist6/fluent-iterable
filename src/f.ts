@@ -8,7 +8,7 @@ import {
   FluentAsyncIterable,
   FluentEmitOptions,
   FluentIterable,
-} from './types';
+} from '../types';
 
 function f<T>(iterable: Iterable<T>): FluentIterable<T>;
 function f<T>(iterable: AsyncIterable<T>): FluentAsyncIterable<T>;

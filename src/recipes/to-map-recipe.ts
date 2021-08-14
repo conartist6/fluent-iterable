@@ -7,7 +7,7 @@ import {
 import { DistinctIngredients } from './ingredients';
 import { orderedOperationRecipe } from './ordered-operation-recipe';
 import { prepare } from '../types-internal/prepare';
-import { Choose } from '../types';
+import { Choose } from '../../types';
 
 const nonChosen = Symbol('nonChosen');
 

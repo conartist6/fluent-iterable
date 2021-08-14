@@ -1,4 +1,4 @@
-import { CatchCallback } from '../types';
+import { CatchCallback } from '../../types';
 export function* catchSync<T>(this: Iterable<T>, errorCallback: CatchCallback) {
   try {
     yield* this;

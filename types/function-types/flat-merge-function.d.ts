@@ -1,4 +1,4 @@
-import { FluentAsyncIterable } from '../..';
+import { FluentAsyncIterable } from '../../src';
 import { AsyncItemType, ErrorCallback } from '../base';
 
 export interface FlatMergeFunction<T> {

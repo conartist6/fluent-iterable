@@ -1,5 +1,5 @@
-import { KVGroupTransform } from '../types/base';
-import { ItemType } from '../types';
+import { KVGroupTransform } from '../../types/base';
+import { ItemType } from '../../types';
 import { Mapper } from 'augmentative-iterable';
 import { prepare } from '../types-internal/prepare';
 import { filter } from '../sync/filter';

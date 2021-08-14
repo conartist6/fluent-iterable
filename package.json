@@ -14,10 +14,11 @@
     "node": ">=10"
   },
   "files": [
-    "dist"
+    "dist",
+    "types"
   ],
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "types": "types/index.d.ts",
   "scripts": {
     "doc": "npx typedoc",
     "format": "prettier --write src/**/*.ts tst/**/*.ts",

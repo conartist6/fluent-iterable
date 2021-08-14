@@ -1,6 +1,6 @@
 import { AnyIterable } from 'augmentative-iterable';
 import { mergeIterables } from '../async-base/merging';
-import { ErrorCallback } from '../types';
+import { ErrorCallback } from '../../types';
 import { BasicIngredients } from './ingredients';
 
 export function flatMergeRecipe({ resolver, toArray }: BasicIngredients) {

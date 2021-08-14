@@ -9,7 +9,7 @@ import {
 import { DistinctIngredients } from './ingredients';
 import { orderedOperationRecipe } from './ordered-operation-recipe';
 import { prepare } from '../types-internal/prepare';
-import { Choose } from '../types';
+import { Choose } from '../../types';
 
 function inc(map: Map<any, number>, y: any) {
   const result = (map.get(y) || 0) + 1;
